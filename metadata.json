@@ -1,0 +1,6 @@
+{
+  "name": "BodaLink",
+  "description": "Safe Rides. Fast Deliveries. Production-grade motorcycle passenger transport, high-traffic grocery delivery, and express parcel logistics platform for Kenya and East Africa.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

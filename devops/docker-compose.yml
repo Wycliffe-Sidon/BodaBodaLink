@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: bodalink-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bodalink_prod
+      POSTGRES_USER: bodalink_app
+      POSTGRES_PASSWORD: ${SQL_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bodalink_app -d bodalink_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: bodalink-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+
+  bodalink-api:
+    build:
+      context: ..
+      dockerfile: devops/Dockerfile.backend
+    container_name: bodalink-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SQL_HOST: postgres
+      SQL_DB_NAME: bodalink_prod
+      SQL_USER: bodalink_app
+      SQL_PASSWORD: ${SQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MPESA_ENVIRONMENT: production
+    ports:
+      - "3000:3000"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: bodalink-nginx
+    restart: unless-stopped
+    depends_on:
+      - bodalink-api
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  pgdata:
+  redisdata:
